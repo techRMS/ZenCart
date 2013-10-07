@@ -1,0 +1,7 @@
+CREATE TABLE `charityclear_form` (
+  `id` int(11) unsigned NOT NULL auto_increment,
+  `transid` varchar(38) NOT NULL,
+  `zen_order_id` varchar(38) NOT NULL,
+  `received` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+);
