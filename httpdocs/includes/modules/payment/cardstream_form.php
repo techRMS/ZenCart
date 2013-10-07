@@ -131,6 +131,7 @@ class cardstream_form
             zen_draw_hidden_field('customerEmail', $order->customer['email_address']) .
             zen_draw_hidden_field('customerPhone', $order->customer['telephone']) .
             zen_draw_hidden_field('merchantID', MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_ID) .
+            zen_draw_hidden_field('merchantPwd', MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_PASSWORD) .
             zen_draw_hidden_field('countryCode', MODULE_PAYMENT_CARDSTREAM_FORM_COUNTRY_ID) .
             zen_draw_hidden_field('currencyCode', MODULE_PAYMENT_CARDSTREAM_FORM_CURRENCY_ID);
         return $process_button_string;
@@ -170,7 +171,7 @@ class cardstream_form
 
     function before_process()
     {
-        global $_GET, $messageStack, $order;
+        global $messageStack, $order;
 
         if (substr_count($order->info['total'], ".") == 1) {
 
@@ -219,10 +220,11 @@ class cardstream_form
         // General Config Options
         $background_colour = '#d0d0d0';
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('</b><fieldset style=\"background: " . $background_colour . "; margin-bottom: 1.5em;\"><legend style=\"font-size: 1.4em; font-weight: bold\">General Config</legend><b>Enable CardStream Module', 'MODULE_PAYMENT_CARDSTREAM_FORM_STATUS', 'True', 'Do you want to accept CardStream payments?', '6', '0', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_ID', '', '', '2', '1', now())");
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Front End Name', 'MODULE_PAYMENT_CARDSTREAM_FORM_CATALOG_TEXT_TITLE', '', '', '3', '1', now())");
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Currency ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_CURRENCY_ID', '', '', '4', '1', now())");
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Country ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_COUNTRY_ID', '', '', '5', '1', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_ID', 'TEST', '', '2', '1', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Front End Name', 'MODULE_PAYMENT_CARDSTREAM_FORM_CATALOG_TEXT_TITLE', 'Card Payment', '', '3', '1', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Currency ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_CURRENCY_ID', '836', '', '4', '1', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Country ID', 'MODULE_PAYMENT_CARDSTREAM_FORM_COUNTRY_ID', '836', '', '7', '1', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant Password', 'MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_PASSWORD', '', '', '6', '1', now())");
         $background_colour = '#eee';
     }
 
@@ -239,7 +241,8 @@ class cardstream_form
             'MODULE_PAYMENT_CARDSTREAM_FORM_CURRENCY_ID',
             'MODULE_PAYMENT_CARDSTREAM_FORM_CATALOG_TEXT_TITLE',
             'MODULE_PAYMENT_CARDSTREAM_FORM_COUNTRY_ID',
-            'MODULE_PAYMENT_CARDSTREAM_FORM_STATUS'
+            'MODULE_PAYMENT_CARDSTREAM_FORM_STATUS',
+            'MODULE_PAYMENT_CARDSTREAM_FORM_MERCHANT_PASSWORD'
         );
     }
 
