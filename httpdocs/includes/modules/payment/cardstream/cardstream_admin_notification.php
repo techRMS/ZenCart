@@ -23,6 +23,11 @@ if (isset($form_transaction_info->fields)) {
     $output .= '</td><td class="main">' . "\n";
     $output .= $form_transaction_info->fields['transid'] . "\n";
     $output .= '</td></tr>' . "\n";
+   $output .= '<tr><td class="main">' . "\n";
+    $output .= "xref\n";
+    $output .= '</td><td class="main">' . "\n";
+    $output .= $form_transaction_info->fields['xref'] . "\n";
+    $output .= '</td></tr>' . "\n";
 
     $output .= '<tr><td class="main">' . "\n";
     $output .= "Amount Received\n";
@@ -32,6 +37,53 @@ if (isset($form_transaction_info->fields)) {
 
     $output .= '</table></td>' . "\n";
 
+
+
+if(MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE == 'Direct'){
+
+   // if (method_exists($this, '_doRefund')) {
+        $output .= '<td><table class="noprint">'."\n";
+        $output .= '<tr style="background-color : #dddddd; border-style : dotted;">'."\n";
+        $output .= '<td class="main">' . MODULE_PAYMENT_CARDSTREAM_REFUND_TITLE . '<br />'. "\n";
+        $output .= zen_draw_form('cardstreamRefund', FILENAME_ORDERS, zen_get_all_get_params(array('action')) . 'action=doRefund', 'post', '', true) . zen_hide_session_id();;
+
+        $output .= MODULE_PAYMENT_CARDSTREAM_REFUND . '<br />';
+        $output .= MODULE_PAYMENT_CARDSTREAM_REFUND_AMOUNT_TEXT . ' ' . zen_draw_input_field('refamt', '', 'length="8" placeholder="Enter Amount"') . '<br />';
+        // confirm checkbox
+        $output .= MODULE_PAYMENT_CARDSTREAM_REFUND_CONFIRM_CHECK . zen_draw_checkbox_field('refconfirm', '', false) . '<br />';
+        //comment field
+        $output .= '<br />' . MODULE_PAYMENT_CARDSTREAM_REFUND_TEXT_COMMENTS . '<br />' . zen_draw_textarea_field('refnote', 'soft', '50', '3', MODULE_PAYMENT_CARDSTREAM_REFUND_DEFAULT_MESSAGE);
+        //message text
+        $output .= '<br />' . MODULE_PAYMENT_CARDSTREAM_REFUND_SUFFIX;
+        $output .= '<br /><input type="submit" name="buttonrefund" value="' . MODULE_PAYMENT_CARDSTREAM_REFUND_BUTTON_TEXT . '" title="' . MODULE_PAYMENT_CARDSTREAM_REFUND_BUTTON_TEXT . '" />';
+        $output .= '</form>';
+        $output .='</td></tr></table></td>'."\n";
+  //  echo $outputRefund;
+  //  }
+
+
+
+
+        $output .= '<td valign="top"><table class="noprint">'."\n";
+        $output .= '<tr style="background-color : #dddddd; border-style : dotted;">'."\n";
+        $output .= '<td class="main">' . MODULE_PAYMENT_CARDSTREAM_CAPTURE_TITLE . '<br />'. "\n";
+        $output .= zen_draw_form('lpapicapture', FILENAME_ORDERS, zen_get_all_get_params(array('action')) . 'action=doCapture', 'post', '', true) . zen_hide_session_id();
+        $output .= MODULE_PAYMENT_CARDSTREAM_CAPTURE . '<br />';
+        $output .= '<br />' . MODULE_PAYMENT_CARDSTREAM_CAPTURE_AMOUNT_TEXT . ' ' . zen_draw_input_field('captamt', '', 'length="8" placeholder="Enter Amount"') . '<br />';
+         // confirm checkbox
+        $output .= MODULE_PAYMENT_CARDSTREAM_CAPTURE_CONFIRM_CHECK . zen_draw_checkbox_field('captconfirm', '', false) . '<br />';
+        //comment field
+        $output .= '<br />' . MODULE_PAYMENT_CARDSTREAM_CAPTURE_TEXT_COMMENTS . '<br />' . zen_draw_textarea_field('captnote', 'soft', '50', '2', MODULE_PAYMENT_CARDSTREAM_CAPTURE_DEFAULT_MESSAGE);
+        //message text
+
+        $output .= '<br /><input type="submit" name="btndocapture" value="' . MODULE_PAYMENT_CARDSTREAM_CAPTURE_BUTTON_TEXT . '" title="' . MODULE_PAYMENT_CARDSTREAM_CAPTURE_BUTTON_TEXT . '" />';
+        $output .= '</form>';
+       $output .='</td></tr></table></td>'."\n";
+
+}
     $output .= '</tr>' . "\n";
+
     $output .= '</table></td>' . "\n";
+
+
 }

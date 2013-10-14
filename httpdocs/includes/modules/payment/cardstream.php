@@ -159,31 +159,35 @@ class cardstream
     {
         global $order, $currencies, $currency, $customer_id, $cart, $products, $contents;
         // Save response from gateway in the database
+
+
+        if(isset($_SESSION['CARDSTREAMDATA'])){
+            $data = $_SESSION['CARDSTREAMDATA'];
+            unset($_SESSION['CARDSTREAMDATA']);
+        }else{
+            $data = $_POST;
+        }
+
         $form_response_array = array(
-            'transid' => $_POST['transactionUnique'],
+            'transid' => $data['transactionUnique'],
             'zen_order_id' => $zf_order_id,
-            'received' => $_POST['amountReceived'],
-            'xref' => $_POST['xref'],
-            'authorisationCode' => $_POST['authorisationCode'],
-            'action' => $_POST['action'],
-            'responseMessage' => $_POST['responseMessage']
+            'received' => $data['amountReceived'],
+            'xref' => $data['xref'],
+            'authorisationCode' => $data['authorisationCode'],
+            'action' => $data['action'],
+            'responseMessage' => $data['responseMessage']
         );
 
-       // die(var_dump($_POST));
+      // die(var_dump($_POST,$_SESSION));
         zen_db_perform('cardstream', $form_response_array);
+
     }
 
     function admin_notification($zf_order_id)
     {
         global $db;
 
-        $sql = "
-			SELECT
-				*
-			FROM
-				cardstream
-			WHERE
-				zen_order_id = '" . $zf_order_id . "'";
+        $sql = "SELECT * FROM cardstream WHERE zen_order_id = '$zf_order_id'";
 
         $form_transaction_info = $db->Execute($sql);
 
@@ -199,7 +203,7 @@ class cardstream
         if (MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE == 'Hosted') {
             $this->cs->process_hosted();
         }else{
-            $this->cs->process_direct();
+           return $this->cs->process_direct();
         }
 
     }
@@ -216,11 +220,147 @@ class cardstream
         $db->Execute($sql);
         return false;
 
-        return false;
+
     }
 
-    function _doRefund(){
-        return true;
+    function _doCapt($oID, $amt = 0, $currency = 'USD') {
+        global $db, $messageStack, $order;
+
+        $transaction_info = $db->Execute("SELECT * FROM cardstream WHERE zen_order_id = '$oID'");
+
+        $proceedToRefund = true;
+        if ($transaction_info->RecordCount() < 1) {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_NO_MATCHING_ORDER_FOUND, 'error');
+            $proceedToRefund = false;
+        }
+
+        // check user ticked the confirm box
+        if (!isset($_POST['captconfirm']) || $_POST['captconfirm'] != 'on') {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_CAPTURE_CONFIRM_ERROR, 'error');
+            $proceedToRefund = false;
+        }
+        // check user gave a valid refund amount
+        if (isset($_POST['captamt']) && (float)$_POST['captamt'] == 0) {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_INVALID_CAPTURE_AMOUNT, 'error');
+            $proceedToRefund = false;
+        }
+
+        if(!$proceedToRefund){
+            return false;
+        }
+
+
+
+        $req = array(
+            "merchantID" => MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID,
+            "action" => "SALE",
+            "type" => 1,
+            "transactionUnique" => uniqid(),
+            "currencyCode" => MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID,
+            "amount" => (float)$_POST['captamt'] * 100,
+            'xref' => $transaction_info->fields['xref'],
+            "orderRef" => $_POST['orderRef'],
+
+            "countryCode" => MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID,
+            "returnInternalData" => "Y",
+            "threeDSRequired" => "N",
+
+            "threeDSMD" => (isset($_REQUEST['MD']) ? $_REQUEST['MD'] : null),
+            "threeDSPaRes" => (isset($_REQUEST['PaRes']) ? $_REQUEST['PaRes'] : null),
+            "threeDSPaReq" => (isset($_REQUEST['PaReq']) ? $_REQUEST['PaReq'] : null)
+        );
+
+
+       $res = $this->cs->makeRequest(MODULE_PAYMENT_CARDSTREAM_DIRECT_URL,$req);
+
+       // die(var_dump($res,$_POST, $transaction_info));
+        if(isset($res['responseCode']) && $res['responseCode'] == 0){
+
+
+
+            $sql_data_array= array(array('fieldName'=>'orders_id', 'value' => $oID, 'type'=>'integer'),
+            //    array('fieldName'=>'orders_status_id', 'value' => MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID, 'type'=>'integer'),
+                array('fieldName'=>'date_added', 'value' => 'now()', 'type'=>'noquotestring'),
+                array('fieldName'=>'comments', 'value' => MODULE_PAYMENT_CARDSTREAM_CAPTURE_DEFAULT_MESSAGE.' '. sprintf(MODULE_PAYMENT_CARDSTREAM_CAPT_INITIATED, (float)$_POST['captamt'], $res['transactionID'], $oID), 'type'=>'string'),
+                array('fieldName'=>'customer_notified', 'value' => 0, 'type'=>'integer'));
+            $db->perform(TABLE_ORDERS_STATUS_HISTORY, $sql_data_array);
+
+
+            $messageStack->add_session(sprintf(MODULE_PAYMENT_CARDSTREAM_CAPT_INITIATED, (float)$_POST['captamt'], $res['transactionID'], $oID), 'success');
+
+            return true;
+        }else{
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_CAPTURE_ERROR, 'error');
+            return false;
+        }
+
+    }
+
+    function _doRefund($oID, $amount = 'Full', $note = ''){
+
+        global $db, $messageStack, $order;
+
+        $transaction_info = $db->Execute("SELECT * FROM cardstream WHERE zen_order_id = '$oID'");
+
+        if ($transaction_info->RecordCount() < 1) {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_NO_MATCHING_ORDER_FOUND, 'error');
+            $proceedToRefund = false;
+        }
+
+        // check user ticked the confirm box
+        if (isset($_POST['refconfirm']) && $_POST['refconfirm'] != 'on') {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_REFUND_CONFIRM_ERROR, 'error');
+            $proceedToRefund = false;
+        }
+        // check user gave a valid refund amount
+        if (isset($_POST['refamt']) && (float)$_POST['refamt'] == 0) {
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_INVALID_REFUND_AMOUNT, 'error');
+            $proceedToRefund = false;
+        }
+
+        if(!$proceedToRefund){
+            return false;
+        }
+
+        $req = array(
+            "merchantID" => MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID,
+            "action" => "REFUND",
+            "type" => 1,
+            "amount" => (float)$_POST['refamt'] * 100,
+            'xref' => $transaction_info->fields['xref']
+
+        );
+
+       $res = $this->cs->makeRequest(MODULE_PAYMENT_CARDSTREAM_DIRECT_URL,$req);
+
+        if(isset($res['responseCode']) && $res['responseCode'] == 0){
+
+            if($_POST['refamt'] == $order->info['total']){
+                $new_order_status = MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID;
+            }elseif($order->info['total'] > $_POST['refamt']){
+                $new_order_status = MODULE_PAYMENT_CARDSTREAM_PART_REFUNDED_STATUS_ID;
+            }else{
+                $new_order_status = MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID;
+            }
+
+            $sql_data_array= array(array('fieldName'=>'orders_id', 'value' => $oID, 'type'=>'integer'),
+                array('fieldName'=>'orders_status_id', 'value' => MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID, 'type'=>'integer'),
+                array('fieldName'=>'date_added', 'value' => 'now()', 'type'=>'noquotestring'),
+                array('fieldName'=>'comments', 'value' => MODULE_PAYMENT_CARDSTREAM_REFUND_DEFAULT_MESSAGE." {$_POST['refamt']}", 'type'=>'string'),
+                array('fieldName'=>'customer_notified', 'value' => 0, 'type'=>'integer'));
+            $db->perform(TABLE_ORDERS_STATUS_HISTORY, $sql_data_array);
+            $db->Execute("update " . TABLE_ORDERS  . "
+                  set orders_status = '" . (int)$new_order_status . "'
+                  where orders_id = '" . (int)$oID . "'");
+
+            $messageStack->add_session(sprintf(MODULE_PAYMENT_CARDSTREAM_TEXT_REFUND_INITIATED, $res['transactionID'], $oID), 'success');
+
+            return true;
+        }else{
+            $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_INVALID_REFUND_AMOUNT, 'error');
+            return false;
+        }
+
     }
 
 
@@ -240,6 +380,7 @@ class cardstream
         // General Config Options
         $background_colour = '#d0d0d0';
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Enable CardStream Module', 'MODULE_PAYMENT_CARDSTREAM_STATUS', 'True', 'Do you want to accept CardStream payments?', '6', '1', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Enable 3DS', 'MODULE_PAYMENT_CARDSTREAM_3DS', 'True', 'Do you want to turn on 3DS?', '6', '1', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Select Integration Method', 'MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE', 'Hosted', 'Do you want to use Direct (SSL Required) or Hosted ', '6', '2', 'zen_cfg_select_option(array(\'Hosted\', \'Direct\'), ', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant ID', 'MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID', 'TEST', 'Merchant ID set in your mms', '6', '3', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant Password', 'MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD', 'TEST', 'Merchant password set in your mms', '6', '4', now())");
@@ -252,6 +393,7 @@ class cardstream
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, use_function, date_added) values ('Set Order Status', 'MODULE_PAYMENT_CARDSTREAM_ORDER_STATUS_ID', '2', 'Set the status of orders paid with this payment module to this value. <br /><strong>Recommended: Processing[2]</strong>', '6', '25', 'zen_cfg_pull_down_order_statuses(', 'zen_get_order_status_name', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, use_function, date_added) values ('Set Unpaid Order Status', 'MODULE_PAYMENT_CARDSTREAM_ORDER_PENDING_STATUS_ID', '1', 'Set the status of unpaid orders made with this payment module to this value. <br /><strong>Recommended: Pending[1]</strong>', '6', '25', 'zen_cfg_pull_down_order_statuses(', 'zen_get_order_status_name', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, use_function, date_added) values ('Set Refund Order Status', 'MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID', '1', 'Set the status of refunded orders to this value. <br /><strong>Recommended: Pending[1]</strong>', '6', '25', 'zen_cfg_pull_down_order_statuses(', 'zen_get_order_status_name', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, use_function, date_added) values ('Set Partial Refund Order Status', 'MODULE_PAYMENT_CARDSTREAM_PART_REFUNDED_STATUS_ID', '2', 'Set the status of partially refunded orders to this value. <br /><strong>Recommended: Processing[2]</strong>', '6', '25', 'zen_cfg_pull_down_order_statuses(', 'zen_get_order_status_name', now())");
         $background_colour = '#eee';
     }
 
@@ -266,6 +408,7 @@ class cardstream
         return array(
             'MODULE_PAYMENT_CARDSTREAM_STATUS',
             'MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE',
+            'MODULE_PAYMENT_CARDSTREAM_3DS',
             'MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID',
             'MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD',
             'MODULE_PAYMENT_CARDSTREAM_CATALOG_TEXT_TITLE',
@@ -274,7 +417,8 @@ class cardstream
             'MODULE_PAYMENT_CARDSTREAM_SORT_ORDER',
             'MODULE_PAYMENT_CARDSTREAM_ORDER_STATUS_ID',
             'MODULE_PAYMENT_CARDSTREAM_ORDER_PENDING_STATUS_ID',
-            'MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID'
+            'MODULE_PAYMENT_CARDSTREAM_REFUNDED_STATUS_ID',
+            'MODULE_PAYMENT_CARDSTREAM_PART_REFUNDED_STATUS_ID'
         );
     }
 

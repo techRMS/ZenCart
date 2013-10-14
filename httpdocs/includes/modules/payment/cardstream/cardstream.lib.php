@@ -134,6 +134,7 @@ class cardstream_lib
             zen_draw_hidden_field('customerEmail', $order->customer['email_address']) .
             zen_draw_hidden_field('customerPhone', $order->customer['telephone']) .
             zen_draw_hidden_field('merchantID', MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID) .
+            zen_draw_hidden_field('threeDSRequired', MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N') .
             zen_draw_hidden_field('countryCode', MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID) .
             zen_draw_hidden_field('currencyCode', MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID);
 
@@ -195,24 +196,22 @@ class cardstream_lib
             "customerAddress" => $order->billing['street_address']."\n".$order->billing['suburb']."\n".$order->billing['city']."\n".$order->billing['state'],
             "countryCode" => MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID,
             "returnInternalData" => "Y",
-            "threeDSRequired" => "N",
+            "threeDSRequired" => MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N',
             "customerPostCode" => $order->billing['postcode'],
             "threeDSMD" => (isset($_REQUEST['MD']) ? $_REQUEST['MD'] : null),
             "threeDSPaRes" => (isset($_REQUEST['PaRes']) ? $_REQUEST['PaRes'] : null),
             "threeDSPaReq" => (isset($_REQUEST['PaReq']) ? $_REQUEST['PaReq'] : null)
         );
 
-
-        $ch = curl_init('https://gateway.cardstream.com/direct/');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($req));
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        parse_str(curl_exec($ch), $res);
-        curl_close($ch);
+        $res = $this->makeRequest('https://gateway.cardstream.com/direct/',$req);
        // echo $res['responseCode'];
         if ($res['responseCode'] == 65802) {
+
+
+            $_SESSION['CARDSTREAMDATA'] = $res;
+
+            zen_redirect(zen_href_link('cardstream_3ds', '', 'SSL', true, false));
+
             // Send details to 3D Secure ACS and the return here to repeat request
             $pageUrl = (@$_SERVER["HTTPS"] == "on") ? "https://" : "http://";
             if ($_SERVER["SERVER_PORT"] != "80") {
@@ -229,14 +228,23 @@ class cardstream_lib
                     <input type=\"hidden\" name=\"TermUrl\" value=\"" . htmlentities($pageUrl) . "\">
         <input type=\"submit\" value=\"Continue\">
         </form>";
-
+            //return false;
+die();
 
         } elseif ($res['responseCode'] === "0") {
+
+
+            $_SESSION['CARDSTREAMDATA'] = $res;
+
+
             print "<pre>";
             print_r($res);
             print "</pre>";
             echo "<p>Thank you for your payment</p>";
+            die();
+            return true;
         } else {
+
             echo "<p>Failed to take payment: " . htmlentities($res['responseMessage']) . "</p>";
         }
 
@@ -285,4 +293,63 @@ class cardstream_lib
 
 
     }
+
+    function makeRequest($url,$params, $verb = 'POST'){
+
+
+        $cparams = array(
+            'http' => array(
+                'method'        => $verb,
+                'ignore_errors' => true
+            )
+        );
+        if ($params !== null && !empty($params)) {
+            $params = http_build_query($params);
+            if ($verb == 'POST') {
+                $cparams["http"]['header'] = 'Content-Type: application/x-www-form-urlencoded';
+                $cparams['http']['content'] = $params;
+            } else {
+                $url .= '?' . $params;
+            }
+        } /*else {
+            return $this->error(
+                'this api requires all calls to have params' . $this->debug ? ', you provided: ' . var_dump($params)
+                    : ''
+            );
+        }*/
+
+        $context = stream_context_create($cparams);
+        $fp = fopen($url, 'rb', false, $context);
+        if (!$fp) {
+            $res = false;
+        } else {
+
+            /*if ($this->debug) {
+                $meta = stream_get_meta_data($fp);
+                $this->error('var dump of http headers' . var_dump($meta['wrapper_data']));
+            }*/
+
+            $res = stream_get_contents($fp);
+            parse_str($res,$res);
+        }
+
+        if ($res === false) {
+            return false;// $this->error("$verb $url failed: $php_errormsg");
+        }
+
+        return $res;
+
+
+     /*   $ch = curl_init('https://gateway.cardstream.com/direct/');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($req));
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        parse_str(curl_exec($ch), $res);
+        curl_close($ch);
+
+        return $res;*/
+    }
+
 }
