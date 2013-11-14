@@ -248,10 +248,6 @@ die();
             echo "<p>Failed to take payment: " . htmlentities($res['responseMessage']) . "</p>";
         }
 
-
-//die(var_dump($res,$_POST, $this->card));
-
-
     }
 
     function card_data_check(){
@@ -305,18 +301,12 @@ die();
         );
         if ($params !== null && !empty($params)) {
             $params = http_build_query($params);
-            if ($verb == 'POST') {
-                $cparams["http"]['header'] = 'Content-Type: application/x-www-form-urlencoded';
-                $cparams['http']['content'] = $params;
-            } else {
-                $url .= '?' . $params;
-            }
-        } /*else {
-            return $this->error(
-                'this api requires all calls to have params' . $this->debug ? ', you provided: ' . var_dump($params)
-                    : ''
-            );
-        }*/
+            
+            $cparams["http"]['header'] = 'Content-Type: application/x-www-form-urlencoded';
+            $cparams['http']['content'] = $params;
+            
+        }
+        
 
         $context = stream_context_create($cparams);
         $fp = fopen($url, 'rb', false, $context);
@@ -324,32 +314,17 @@ die();
             $res = false;
         } else {
 
-            /*if ($this->debug) {
-                $meta = stream_get_meta_data($fp);
-                $this->error('var dump of http headers' . var_dump($meta['wrapper_data']));
-            }*/
 
             $res = stream_get_contents($fp);
             parse_str($res,$res);
         }
 
         if ($res === false) {
-            return false;// $this->error("$verb $url failed: $php_errormsg");
+            return false;
         }
 
         return $res;
 
-
-     /*   $ch = curl_init('https://gateway.cardstream.com/direct/');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($req));
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        parse_str(curl_exec($ch), $res);
-        curl_close($ch);
-
-        return $res;*/
     }
 
 }
