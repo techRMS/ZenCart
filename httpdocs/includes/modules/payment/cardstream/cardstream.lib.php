@@ -5,8 +5,13 @@ class cardstream_lib
 
     public $form_url = "https://gateway.cardstream.com/hosted/";
     public $direct_url = "https://gateway.cardstream.com/direct/";
+    private $secret;
 
     private $card = array();
+
+    function __construct($secret = 'Circle4Take40Idea'){
+        $this->secret = $secret;
+    }
 
     function module_title(){
         // Set the title and description based on the mode the module is in: Admin or Catalog
@@ -106,10 +111,9 @@ class cardstream_lib
     }
 
     function draw_hosted_form(){
-        global $order, $currencies, $currency, $customer_id, $cart, $products, $contents;
+        global $order, $template, $current_page_base;
 
 
-//var_dump($order);
         if (substr_count($order->info['total'], ".") == 1) {
 
             $exploded = explode(".", $order->info['total']);
@@ -123,8 +127,11 @@ class cardstream_lib
         }
 
         //We're gonna need to zen_draw_hidden_field for EVERY FIELD.
+
+        $tu = md5(mktime());
+
         $process_button_string = zen_draw_hidden_field('redirectURL', str_replace('&amp;', '&', zen_href_link(FILENAME_CHECKOUT_PROCESS, '', 'SSL', true)) . '&') .
-            zen_draw_hidden_field('transactionUnique', md5(mktime())) .
+            zen_draw_hidden_field('transactionUnique', $tu) .
             zen_draw_hidden_field('action', 'SALE') .
             zen_draw_hidden_field('type', '1') .
             zen_draw_hidden_field('amount', $amount) .
@@ -138,9 +145,27 @@ class cardstream_lib
             zen_draw_hidden_field('countryCode', MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID) .
             zen_draw_hidden_field('currencyCode', MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID);
 
-            if(MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD !== 'TEST'){
-                $process_button_string .= zen_draw_hidden_field('merchantPwd', MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD);
-            }
+        $req = array(
+            'securityToken' =>  $_SESSION['securityToken'],
+            'transactionUnique' => $tu,
+            'action' => 'SALE',
+            'type' => 1,
+            'amount' => $amount,
+            'customerName' => $order->billing['firstname'] . ' ' . $order->billing['lastname'],
+            'customerAddress' => $order->billing['street_address'] . "\n" . $order->billing['suburb'] . "\n" . $order->billing['city'],
+            'customerPostCode' => $order->billing['postcode'],
+            'customerEmail' => $order->customer['email_address'],
+            'customerPhone' => $order->customer['telephone'],
+            'merchantID' => MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID,
+            'threeDSRequired' => MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N',
+            'countryCode' => MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID,
+            'currencyCode' => MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID,
+            'btn_submit' => zen_output_string($template->get_template_dir('button_confirm_order.gif', DIR_WS_TEMPLATE, $current_page_base, 'buttons/' . $_SESSION['language'] . '/') . 'button_confirm_order.gif')
+        );
+
+
+        $process_button_string .= zen_draw_hidden_field('signature', $this->signRequest($req));
+
         return $process_button_string;
     }
 
@@ -300,6 +325,11 @@ die();
             )
         );
         if ($params !== null && !empty($params)) {
+
+            if (!isset($params['signature'])) {
+                $params['signature'] = $this->signRequest($params);
+            }
+
             $params = http_build_query($params);
             
             $cparams["http"]['header'] = 'Content-Type: application/x-www-form-urlencoded';
@@ -324,6 +354,20 @@ die();
         }
 
         return $res;
+
+    }
+
+    function signRequest($sig_fields, $secret = null)
+    {
+
+        if (is_array($sig_fields)) {
+            ksort($sig_fields);
+            $sig_fields = http_build_query($sig_fields) . ($secret === null ? $this->secret : $secret);
+        } else {
+            $sig_fields .= ($secret === null ? $this->secret : $secret);
+        }
+
+        return hash('SHA512', $sig_fields);
 
     }
 

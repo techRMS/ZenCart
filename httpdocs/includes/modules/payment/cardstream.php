@@ -56,7 +56,7 @@ class cardstream
 
         // include cardstream lib
         require(DIR_FS_CATALOG . DIR_WS_MODULES . 'payment/cardstream/cardstream.lib.php');
-        $this->cs = new cardstream_lib();
+        $this->cs = new cardstream_lib(MODULE_PAYMENT_CARDSTREAM_MERCHANT_SECRET);
 
         $this->code = 'cardstream';
         $this->version = MODULE_PAYMENT_CARDSTREAM_ADMIN_TITLE;
@@ -383,7 +383,7 @@ class cardstream
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Enable 3DS', 'MODULE_PAYMENT_CARDSTREAM_3DS', 'True', 'Do you want to turn on 3DS?', '6', '1', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Select Integration Method', 'MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE', 'Hosted', 'Do you want to use Direct (SSL Required) or Hosted ', '6', '2', 'zen_cfg_select_option(array(\'Hosted\', \'Direct\'), ', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant ID', 'MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID', 'TEST', 'Merchant ID set in your mms', '6', '3', now())");
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant Password', 'MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD', 'TEST', 'Merchant password set in your mms', '6', '4', now())");
+        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Merchant Password', 'MODULE_PAYMENT_CARDSTREAM_MERCHANT_SECRET', 'TEST', 'Merchant signature secret as set in mms', '6', '4', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Payment Name.', 'MODULE_PAYMENT_CARDSTREAM_CATALOG_TEXT_TITLE', 'Card Payment', 'Name of payment method shown to customer', '6', '5', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Display Order.', 'MODULE_PAYMENT_CARDSTREAM_SORT_ORDER', '0', 'Sort order of display. Lowest is displayed first.', '6', '6', now())");
         $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Currency ID.', 'MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID', '826', 'ISO currency number', '6', '7', now())");
@@ -410,7 +410,7 @@ class cardstream
             'MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE',
             'MODULE_PAYMENT_CARDSTREAM_3DS',
             'MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID',
-            'MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD',
+            'MODULE_PAYMENT_CARDSTREAM_MERCHANT_SECRET',
             'MODULE_PAYMENT_CARDSTREAM_CATALOG_TEXT_TITLE',
             'MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID',
             'MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID',
