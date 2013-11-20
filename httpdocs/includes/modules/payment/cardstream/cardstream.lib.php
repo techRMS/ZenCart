@@ -5,7 +5,11 @@ class cardstream_lib
 
     public $form_url = "https://gateway.cardstream.com/hosted/";
     public $direct_url = "https://gateway.cardstream.com/direct/";
+
+    public $version = 'ZenCart-1';
     private $secret;
+
+
 
     private $card = array();
 
@@ -143,7 +147,8 @@ class cardstream_lib
             zen_draw_hidden_field('merchantID', MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID) .
             zen_draw_hidden_field('threeDSRequired', MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N') .
             zen_draw_hidden_field('countryCode', MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID) .
-            zen_draw_hidden_field('currencyCode', MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID);
+            zen_draw_hidden_field('currencyCode', MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID).
+            zen_draw_hidden_field('merchantData', $this->version);
 
         $req = array(
             'securityToken' =>  $_SESSION['securityToken'],
@@ -160,6 +165,7 @@ class cardstream_lib
             'threeDSRequired' => MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N',
             'countryCode' => MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID,
             'currencyCode' => MODULE_PAYMENT_CARDSTREAM_CURRENCY_ID,
+            'merchantData' => $this->version,
             'btn_submit' => zen_output_string($template->get_template_dir('button_confirm_order.gif', DIR_WS_TEMPLATE, $current_page_base, 'buttons/' . $_SESSION['language'] . '/') . 'button_confirm_order.gif')
         );
 

@@ -267,7 +267,8 @@ class cardstream
 
             "threeDSMD" => (isset($_REQUEST['MD']) ? $_REQUEST['MD'] : null),
             "threeDSPaRes" => (isset($_REQUEST['PaRes']) ? $_REQUEST['PaRes'] : null),
-            "threeDSPaReq" => (isset($_REQUEST['PaReq']) ? $_REQUEST['PaReq'] : null)
+            "threeDSPaReq" => (isset($_REQUEST['PaReq']) ? $_REQUEST['PaReq'] : null),
+            'merchantData' => $this->cs->version
         );
 
 
@@ -327,7 +328,8 @@ class cardstream
             "action" => "REFUND",
             "type" => 1,
             "amount" => (float)$_POST['refamt'] * 100,
-            'xref' => $transaction_info->fields['xref']
+            'xref' => $transaction_info->fields['xref'],
+            'merchantData' => $this->cs->version
 
         );
 
