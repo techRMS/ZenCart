@@ -9,7 +9,7 @@ Copy the includes directory (located inside the httpdocs folder) to your root Ze
 
 Login to your Zen Cart admin panel, then mouseover the Tools link in the top menu.
 Next, click Install SQL Patches - then click browse and select the
-cardstream_form.sql file located inside the sql folder. Finally, click upload.
+cardstream.sql file located inside the sql folder. Finally, click upload.
 
 **Step 3:**
 
