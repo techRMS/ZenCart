@@ -38,13 +38,6 @@
 		{
 
 			/**
-			 * check merchant password has been set
-			 */
-			if (MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD !== 'TEST' || strlen(MODULE_PAYMENT_CARDSTREAM_MERCHANT_PASSWORD) == 0) {
-				return false;
-			}
-
-			/**
 			 * check if the user has disabled the payment method
 			 */
 			if (MODULE_PAYMENT_CARDSTREAM_STATUS != 'True') {
