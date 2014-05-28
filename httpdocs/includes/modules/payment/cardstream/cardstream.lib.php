@@ -6,7 +6,7 @@
 		public $form_url = "https://gateway.cardstream.com/hosted/";
 		public $direct_url = "https://gateway.cardstream.com/direct/";
 
-		public $version = 'ZenCart-1';
+		public $version = 'ZenCart-1.1';
 		private $secret;
 
 
