@@ -17,4 +17,5 @@ If the SQL has been uploaded successfully, a '1 statements processed' message wi
 
 Mouseover the Modules link in the top menu and click Payment. Next, click the circle for CardStream Form and finally click install on the right side of the screen. Follow the instructions that appear, and enter all the necessary details, such as the Merchant ID and signature. Click update, and Cardstream is now integrated with your shopping cart. 
 
+If you would like to make edits to the Cardstream Integration such as updating the Merchant ID, hover over the modules drop down menu and click payments. Click on Cardstream Integration in the list that appears, and click on edit on the right hand side. 
 
