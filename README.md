@@ -19,3 +19,7 @@ Mouseover the Modules link in the top menu and click Payment. Next, click the ci
 
 If you would like to make edits to the Cardstream Integration such as updating the Merchant ID, hover over the modules drop down menu and click payments. Click on Cardstream Integration in the list that appears, and click on edit on the right hand side. 
 
+Compatability
+=========================
+
+Tested against version 1.5.4 of Zencart.
