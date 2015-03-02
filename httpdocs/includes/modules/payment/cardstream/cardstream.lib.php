@@ -177,9 +177,19 @@
 				'merchantData'      => $this->version,
 				'redirectURL'       => str_replace('&amp;', '&', zen_href_link(FILENAME_CHECKOUT_PROCESS, '', 'SSL', true)),
 					);
+			
+			$to_sign = array(
+				'merchantID',
+				'currencyCode',
+				'countryCode', 
+				'action',
+				'amount',
+				'redirectURL',
+				'customerName',
+			);
 
 			ksort($req);
-			$process_button_string .= zen_draw_hidden_field('signature', $this->signRequest($req));
+			$process_button_string .= zen_draw_hidden_field('signature', $this->signRequest($req, $this->secret, $to_sign));
 
 			return $process_button_string;
 		}
@@ -376,18 +386,32 @@
 
 		}
 
-		function signRequest($sig_fields, $secret = null)
-		{
-
-			if (is_array($sig_fields)) {
-				ksort($sig_fields);
-				$sig_fields = http_build_query($sig_fields) . ($secret === null ? $this->secret : $secret);
-			} else {
-				$sig_fields .= ($secret === null ? $this->secret : $secret);
+		function signRequest(array $data, $key = null, array $fields = null) {
+		
+			$pairs = ($fields ? array_intersect_key($data, array_flip($fields)) : $data);
+				
+			ksort($pairs);
+		
+			// Create the URL encoded signature string
+			$ret = http_build_query($pairs, '', '&');
+		
+			// Normalise all line endings (CRNL|NLCR|NL|CR) to just NL (%0A)
+			$ret = preg_replace('/%0D%0A|%0A%0D|%0A|%0D/i', '%0A', $ret);
+		
+			// Hash the signature string and the key together
+			$ret = hash('SHA512', $ret . ($key === null ? $this->secret : $key));
+			
+			if (!empty($fields)) {
+				$x = '';
+				foreach ($fields as $field) {
+					$x .= ",{$field}";		
+				}
+				$x = ltrim($x, ",");
+				
+				$ret = "{$ret}|{$x}";
 			}
-
-			return hash('SHA512', $sig_fields);
-
+		
+			return $ret;			
 		}
 
 	}
