@@ -125,20 +125,9 @@
 		function draw_hosted_form()
 		{
 			global $order, $template, $current_page_base;
-
-
-			if (substr_count($order->info['total'], ".") == 1) {
-
-				$exploded = explode(".", $order->info['total']);
-				if (strlen($exploded[1]) == 1) {
-					$amount = str_replace(".", "", $order->info['total']) * 10;
-				} else {
-					$amount = str_replace(".", "", $order->info['total']);
-				}
-			} else {
-				$amount = $order->info['total'] * 100;
-			}
-
+			
+			$amount = round($order->info['total']*100, 0);
+			
 			//We're gonna need to zen_draw_hidden_field for EVERY FIELD.
 
 			$tu = md5(mktime());
