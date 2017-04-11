@@ -1,0 +1,2 @@
+/*WARNING!!! MAKE SURE TO EDIT THIS FILE AND CHANGE THE NAME OF THE ORDERS TABLE TO YOUR OWN FOUND IN YOUR ZEN CART DATABASE*/
+ALTER TABLE orders ADD COLUMN `cardstream_xref` VARCHAR(128) NULL, ADD COLUMN `cardstream_transactionUnique` VARCHAR(128) NULL, ADD COLUMN `cardstream_amount_received` FLOAT NOT NULL DEFAULT '0.0', ADD COLUMN `cardstream_authorisationCode` VARCHAR(128) NULL, ADD COLUMN `cardstream_responseMessage` TEXT NULL, ADD COLUMN `cardstream_lastAction` VARCHAR(32) NULL

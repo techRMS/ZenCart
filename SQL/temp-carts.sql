@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS cardstream_temp_carts (cardstream_orderRef VARCHAR(64) NOT NULL, cardstream_session TEXT NOT NULL, cardstream_cdate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, cardstream_orderID int NULL) ENGINE=InnoDB;

@@ -21,18 +21,18 @@ if (isset($form_transaction_info->fields)) {
     $output .= '<tr><td class="main">' . "\n";
     $output .= "Transaction Unique Code\n";
     $output .= '</td><td class="main">' . "\n";
-    $output .= $form_transaction_info->fields['transid'] . "\n";
+    $output .= $form_transaction_info->fields['cardstream_transactionUnique'] . "\n";
     $output .= '</td></tr>' . "\n";
    $output .= '<tr><td class="main">' . "\n";
     $output .= "xref\n";
     $output .= '</td><td class="main">' . "\n";
-    $output .= $form_transaction_info->fields['xref'] . "\n";
+    $output .= $form_transaction_info->fields['cardstream_xref'] . "\n";
     $output .= '</td></tr>' . "\n";
 
     $output .= '<tr><td class="main">' . "\n";
     $output .= "Amount Received\n";
     $output .= '</td><td class="main">' . "\n";
-    $output .= substr($form_transaction_info->fields['received'], 0, -2) . "." . substr($form_transaction_info->fields['received'], strlen($form_transaction_info->fields['received']) - 2, strlen($form_transaction_info->fields['received'])) . "\n";
+    $output .= substr($form_transaction_info->fields['cardstream_responseMessage'], 0, -2) . "." . substr($form_transaction_info->fields['received'], strlen($form_transaction_info->fields['cardstream_responseMessage']) - 2, strlen($form_transaction_info->fields['cardstream_responseMessage'])) . "\n";
     $output .= '</td></tr>' . "\n";
 
     $output .= '</table></td>' . "\n";
