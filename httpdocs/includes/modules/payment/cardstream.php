@@ -1,5 +1,5 @@
 <?php
-// File protection as per Zen-Cart suggestions
+// File protection
 if (!defined('IS_ADMIN_FLAG')) {
     die('Illegal Access');
 }
@@ -17,11 +17,11 @@ class cardstream {
         $this->description = MODULE_PAYMENT_CARDSTREAM_ADMIN_DESCRIPTION;
         $this->secret = MODULE_PAYMENT_CARDSTREAM_MERCHANT_SECRET ?: 'Circle4Take40Idea';
 
-        // set zen-cart payment form action
+        // Set payment form action
         $this->form_action_url = $this->form_url();
-        // perform checks and disable module if required config is missing
+        // Perform checks and disable module if required config is missing
         $this->enabled = $this->valid_setup();
-        // set display title for admin or customer
+        // Set display title for admin or customer
         $this->title = $this->module_title();
 
         if (IS_ADMIN_FLAG === true && !$this->enabled && MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE == 'Direct'){
@@ -29,7 +29,7 @@ class cardstream {
             $this->title .= "<span class=\"alert\" title=\"$warning\">" . substr($warning, 0, 32) . "...</span>";
         }
 
-        // set zen-cart display order
+        // Set display order
         $this->sort_order = MODULE_PAYMENT_CARDSTREAM_SORT_ORDER;
 
         if ((int)MODULE_PAYMENT_CARDSTREAM_ORDER_STATUS_ID > 0) {
@@ -99,7 +99,7 @@ class cardstream {
         }
     }
     /**
-     * Check card details before sending them preemtively
+     * Check card details before sending them
      */
     function pre_confirmation_check() {
         if (MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE == 'Direct') {
@@ -150,7 +150,7 @@ class cardstream {
             "customerAddress"    => $order->billing['street_address'] . "\n" . $order->billing['suburb'] . "\n" . $order->billing['city'] . "\n" . $order->billing['state'],
             "countryCode"        => MODULE_PAYMENT_CARDSTREAM_COUNTRY_ID,
             "returnInternalData" => "Y",
-            //"threeDSRequired"    => MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N',
+            // "threeDSRequired"    => MODULE_PAYMENT_CARDSTREAM_3DS == 'True' ? 'Y' : 'N',
             "customerPostCode"   => $order->billing['postcode'],
             "threeDSMD"          => (isset($_REQUEST['MD']) ? $_REQUEST['MD'] : null),
             "threeDSPaRes"       => (isset($_REQUEST['PaRes']) ? $_REQUEST['PaRes'] : null),
@@ -168,9 +168,9 @@ class cardstream {
         $session = $_SESSION;
         unset($session['navigation']);
         $session = addslashes(json_encode($session));
-        //Delete any old sessions when creating any new one
+        // Delete any old sessions when creating any new one
         $db->Execute("DELETE FROM cardstream_temp_carts WHERE cardstream_cdate <= NOW() - INTERVAL 2 HOUR");
-        //Upload session that contains their cart to table called `cardstream_temp_carts`
+        // Upload session that contains their cart to table called `cardstream_temp_carts`
         $db->Execute("INSERT INTO cardstream_temp_carts (`cardstream_orderRef`, `cardstream_session`, `cardstream_orderID`) VALUES (\"$ref\", \"$session\", NULL)");
         return array(
             "merchantID"        => MODULE_PAYMENT_CARDSTREAM_MERCHANT_ID,
@@ -207,17 +207,17 @@ class cardstream {
     function before_process() {
         global $db;
         $_POST = (isset($_SESSION['CARDSTREAM_CALLBACK']) ? $_SESSION['CARDSTREAM_CALLBACK'] : $_POST);
-        //Implement behaviour for the two modules
+        // Implement behaviour for the two modules
         if (MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE == 'Hosted') {
             if (self::has_keys($_POST, self::get_response_template())) {
-                //Respond to the users redirect request the same way as a callback
+                // Respond to the users redirect request the same way as a callback
                 $this->res = $_POST;
-                //Check if we came back via the redirect (CARDSTREAM_CALLBACK WILL NOT BE SET!)
+                // Check if we came back via the redirect (CARDSTREAM_CALLBACK WILL NOT BE SET!)
                 if (!defined('CARDSTREAM_CALLBACK')) {
-                    //Get the status of the callback
+                    // Get the status of the callback
                     $results = $db->Execute("SELECT * FROM cardstream_temp_carts WHERE cardstream_orderRef = \"" . $this->res['orderRef'] . "\"");
                     if ($results->fields['cardstream_orderID'] !== null) {
-                        //Make sure to prevent any duplicates...
+                        // Make sure to prevent any duplicates...
                         $id = intval($results->fields['cardstream_orderID']);
                         define('CARDSTREAM_CALLBACK_ID', $id);
                         $this->stage_order = new StageOrder($id);
@@ -238,7 +238,7 @@ class cardstream {
      */
     function process_all() {
         global $messageStack;
-        //Start processing responses
+        // Start processing responses
         if ($this->res['responseCode'] == 65802) {
             // Send details to 3D Secure ACS and the return here to repeat request
             $pageUrl = ($this->is_https() ? HTTP_SERVER : HTTPS_SERVER) . $_SERVER["REQUEST_URI"];
@@ -291,15 +291,13 @@ class cardstream {
             "orders_status = " . MODULE_PAYMENT_CARDSTREAM_ORDER_STATUS_ID . " " .
             "WHERE orders_id = $zf_order_id"
         );
-         if(defined('CARDSTREAM_CALLBACK')) {
-            $db->Execute("UPDATE cardstream_temp_carts
-                SET cardstream_orderID = $zf_order_id
-                WHERE cardstream_orderRef = \"{$this->res['orderRef']}\""
-            );
-        } else {
-            //Remove incomplete payments and remove finished carts
-            $db->Execute("DELETE FROM cardstream_temp_carts WHERE cardstream_orderRef = \"" . $this->res["orderRef"] . "\" OR cardstream_cdate <= NOW() - INTERVAL 2 HOUR");
-        }
+        // Always update carts to prevent duplicates
+        $db->Execute("UPDATE cardstream_temp_carts
+            SET cardstream_orderID = $zf_order_id
+            WHERE cardstream_orderRef = \"{$this->res['orderRef']}\""
+        );
+        // Remove all carts that must've timed out
+        $db->Execute("DELETE FROM cardstream_temp_carts WHERE cardstream_cdate <= NOW() - INTERVAL 2 HOUR");
     }
     /*
      * Returns what the module is called
@@ -322,7 +320,7 @@ class cardstream {
      */
     function valid_setup() {
         $isEnabled = MODULE_PAYMENT_CARDSTREAM_STATUS == 'True';
-        //Make sure that the Cardstream module is enable and that we're running HTTPS on a direct capture type
+        // Make sure that the Cardstream module is enable and that we're running HTTPS on a direct capture type
         return ($isEnabled && MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE === 'Direct' && $this->is_https() || $isEnabled && MODULE_PAYMENT_CARDSTREAM_CAPTURE_TYPE === 'Hosted');
     }
     /*
@@ -491,8 +489,10 @@ class cardstream {
      * (or otherwise 10 characters)
      */
     public static function generate_random_string($length = 10) {
-        //Generate a random string of uppercase and lowercase letters including numbers 0-9.
-        //Can be used to create seeds/ID"s etc etc
+        /**
+         * Generate a random string of uppercase and lowercase letters
+         * including numbers 0-9. Can be used to create seeds/ID"s etc
+         */
         $characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         $randomString = "";
         for ($i = 0; $i < $length; $i++) {
@@ -518,7 +518,7 @@ class cardstream {
      * Import a zen cart session
      */
     public static function import_session($session) {
-        //Try to get the session back as best as possible
+        // Try to get the session back as best as possible
         unset($session['navigation']);
         unset($session['securityToken']);
         foreach(array_keys($session) as $key){
@@ -548,7 +548,7 @@ class cardstream {
      */
     function after_process()
     {
-        //Remove?
+        // Remove?
     }
 
     function _doRefund($oID, $amount = 'Full', $note = '')
@@ -563,12 +563,12 @@ class cardstream {
             $proceedToRefund = false;
         }
 
-        // check user ticked the confirm box
+        // Check user ticked the confirm box
         if (isset($_POST['refconfirm']) && $_POST['refconfirm'] != 'on') {
             $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_REFUND_CONFIRM_ERROR, 'error');
             $proceedToRefund = false;
         }
-        // check user gave a valid refund amount
+        // Check user gave a valid refund amount
         if (isset($_POST['refamt']) && (float)$_POST['refamt'] == 0) {
             $messageStack->add_session(MODULE_PAYMENT_CARDSTREAM_TEXT_INVALID_REFUND_AMOUNT, 'error');
             $proceedToRefund = false;
@@ -659,6 +659,7 @@ class cardstream {
             AND TABLE_SCHEMA = '" . DB_DATABASE . "'
             AND COLUMN_NAME IN ('cardstream_xref', 'cardstream_transactionUnique', 'cardstream_amount_received', 'cardstream_authorisationCode', 'cardstream_responseMessage', 'cardstream_lastAction')
         ");
+
         if (intval($result->fields['COUNT(*)']) < 1) {
             $db->Execute("ALTER TABLE " . TABLE_ORDERS . "
                 ADD COLUMN `cardstream_xref` VARCHAR(128) NULL,
@@ -669,6 +670,7 @@ class cardstream {
                 ADD COLUMN `cardstream_lastAction` VARCHAR(32) NULL
             ");
         }
+
         $db->Execute("CREATE TABLE IF NOT EXISTS cardstream_temp_carts (cardstream_orderRef VARCHAR(64) NOT NULL, cardstream_session TEXT NOT NULL, cardstream_cdate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, cardstream_orderID int NULL)");
         $background_colour = '#eee';
     }
